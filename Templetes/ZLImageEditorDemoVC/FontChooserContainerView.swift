@@ -226,7 +226,7 @@ extension FontChooserContainerView: UICollectionViewDataSource, UICollectionView
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let font = UIFont(name: fonts[indexPath.row], size: 20) else {
+        guard let font = UIFont(name: fonts[indexPath.row], size: 30) else {
             return
         }
         self.selectFontBlock?(font)

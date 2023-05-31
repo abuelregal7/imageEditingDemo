@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="20020"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" id="gTV-IL-0wX" customClass="LayersCollectionViewCell" customModule="Templetes" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="150" height="150"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
+                <rect key="frame" x="0.0" y="0.0" width="150" height="150"/>
+                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                <subviews>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="WSI-7N-xIf">
+                        <rect key="frame" x="5" y="5" width="140" height="140"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="trans" translatesAutoresizingMaskIntoConstraints="NO" id="auv-7N-Jbp">
+                                <rect key="frame" x="0.0" y="0.0" width="140" height="140"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="HfA-Ad-jud">
+                                <rect key="frame" x="10" y="10" width="120" height="120"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </imageView>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GN0-nA-pWS">
+                                <rect key="frame" x="10" y="10" width="120" height="120"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </view>
+                        </subviews>
+                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstAttribute="bottom" secondItem="HfA-Ad-jud" secondAttribute="bottom" constant="10" id="4Iu-7N-T9o"/>
+                            <constraint firstItem="HfA-Ad-jud" firstAttribute="top" secondItem="WSI-7N-xIf" secondAttribute="top" constant="10" id="5o2-8D-nkP"/>
+                            <constraint firstItem="auv-7N-Jbp" firstAttribute="top" secondItem="WSI-7N-xIf" secondAttribute="top" id="ETo-UC-6yr"/>
+                            <constraint firstItem="GN0-nA-pWS" firstAttribute="leading" secondItem="HfA-Ad-jud" secondAttribute="leading" id="FSe-Il-D2A"/>
+                            <constraint firstAttribute="bottom" secondItem="auv-7N-Jbp" secondAttribute="bottom" id="H0r-gU-XJL"/>
+                            <constraint firstItem="GN0-nA-pWS" firstAttribute="trailing" secondItem="HfA-Ad-jud" secondAttribute="trailing" id="Qqn-aC-TVr"/>
+                            <constraint firstAttribute="trailing" secondItem="HfA-Ad-jud" secondAttribute="trailing" constant="10" id="ShT-ZY-W97"/>
+                            <constraint firstAttribute="trailing" secondItem="auv-7N-Jbp" secondAttribute="trailing" id="TLE-ys-fQK"/>
+                            <constraint firstItem="HfA-Ad-jud" firstAttribute="leading" secondItem="WSI-7N-xIf" secondAttribute="leading" constant="10" id="Zv1-qj-6bj"/>
+                            <constraint firstItem="auv-7N-Jbp" firstAttribute="leading" secondItem="WSI-7N-xIf" secondAttribute="leading" id="gOZ-uo-RLm"/>
+                            <constraint firstItem="GN0-nA-pWS" firstAttribute="top" secondItem="HfA-Ad-jud" secondAttribute="top" id="jKN-ad-Dch"/>
+                            <constraint firstItem="GN0-nA-pWS" firstAttribute="bottom" secondItem="HfA-Ad-jud" secondAttribute="bottom" id="wbD-Gd-mWM"/>
+                        </constraints>
+                    </view>
+                </subviews>
+            </view>
+            <viewLayoutGuide key="safeArea" id="ZTg-uK-7eu"/>
+            <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+            <constraints>
+                <constraint firstItem="WSI-7N-xIf" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="5" id="qND-Ox-lLd"/>
+                <constraint firstAttribute="trailing" secondItem="WSI-7N-xIf" secondAttribute="trailing" constant="5" id="qUB-eV-Cs8"/>
+                <constraint firstItem="WSI-7N-xIf" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" constant="5" id="sLU-e4-5tn"/>
+                <constraint firstAttribute="bottom" secondItem="WSI-7N-xIf" secondAttribute="bottom" constant="5" id="xER-UF-VRd"/>
+            </constraints>
+            <connections>
+                <outlet property="containerView" destination="WSI-7N-xIf" id="yEL-Rf-uqB"/>
+                <outlet property="layersBackgroundImage" destination="auv-7N-Jbp" id="llV-xH-aco"/>
+                <outlet property="layersImage" destination="HfA-Ad-jud" id="6gq-cS-pLj"/>
+                <outlet property="layersView" destination="GN0-nA-pWS" id="gcw-as-Goi"/>
+            </connections>
+            <point key="canvasLocation" x="131.8840579710145" y="51.5625"/>
+        </collectionViewCell>
+    </objects>
+    <resources>
+        <image name="trans" width="1355" height="1700"/>
+    </resources>
+</document>

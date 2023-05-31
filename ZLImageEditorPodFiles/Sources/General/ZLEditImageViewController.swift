@@ -25,6 +25,7 @@
 //  THE SOFTWARE.
 
 import UIKit
+import AVFoundation
 
 public class ZLEditImageModel: NSObject {
     public let drawPaths: [ZLDrawPath]
@@ -272,6 +273,7 @@ open class ZLEditImageViewController: UIViewController {
     var currentFilter: ZLFilter
     
     var stickers: [UIView] = []
+    var rearrangedSticker: [UIView] = []
     
     var isScrolling = false
     
@@ -303,6 +305,75 @@ open class ZLEditImageViewController: UIViewController {
     let canRedo = ZLImageEditorConfiguration.default().canRedo
     
     var hasAdjustedImage = false
+    
+    var ZoomeInOutBtn = UIButton(type: .custom)
+    var flagZoom = false
+    var viewCenterY: CGFloat = 0.0
+    
+    var layersBtn = UIButton(type: .custom)
+    var flagLayers = false
+    lazy var layersViewFullWidth:CGFloat = {
+        85
+    }()
+    var layersViewHalfwidth:CGFloat = 0
+    private var layersViewWidthConstraint: NSLayoutConstraint?
+    lazy var layersView: UIView = {
+        
+        let layers = UIView()
+        layers.backgroundColor = .white.withAlphaComponent(0.35)
+        layers.layer.cornerRadius = 12
+        return layers
+        
+    }()
+    open lazy var layersCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.itemSize = CGSize(width: 70, height: 70)
+        layout.minimumLineSpacing = 2.5
+        layout.minimumInteritemSpacing = 2.5
+        layout.scrollDirection = .vertical
+        
+        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        view.backgroundColor = .clear
+        view.delegate = self
+        view.dataSource = self
+        view.showsHorizontalScrollIndicator = false
+        view.register(UINib(nibName: "LayersCollectionViewCell", bundle: nil), forCellWithReuseIdentifier: "LayersCollectionViewCell")
+        
+        return view
+    }()
+    
+    var ratioData = ["1:1", "9:16"]
+    var targetRatio: CGRect?
+    var resizeCropBtn = UIButton(type: .custom)
+    var flagResizeCrop = false
+    lazy var resizeView: UIView = {
+        
+        let layers = UIView()
+        layers.backgroundColor = .white//.withAlphaComponent(0.35)
+        layers.layer.cornerRadius = 12
+        return layers
+        
+    }()
+    open lazy var resizeCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.itemSize = CGSize(width: 70, height: 35)
+        layout.minimumLineSpacing = 2.5
+        layout.minimumInteritemSpacing = 2.5
+        layout.scrollDirection = .horizontal
+        
+        let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        view.backgroundColor = .clear
+        view.delegate = self
+        view.dataSource = self
+        view.showsHorizontalScrollIndicator = false
+        view.register(UINib(nibName: "RatiosCollectionViewCell", bundle: nil), forCellWithReuseIdentifier: "RatiosCollectionViewCell")
+        
+        return view
+    }()
+    
+    var textStickers: [(state: ZLTextStickerState, index: Int)]?
+    var imageStickers: [(state: ZLImageStickerState, index: Int)]?
+    
     
     @objc public var editFinishBlock: ((UIImage, ZLEditImageModel?) -> Void)?
     
@@ -401,6 +472,12 @@ open class ZLEditImageViewController: UIViewController {
         }
         
         self.stickers = stickers.compactMap { $0 }
+        self.rearrangedSticker = self.stickers
+        layersCollectionView.reloadData()
+        
+        self.textStickers = teStic
+        self.imageStickers = imStic
+        
     }
     
     @available(*, unavailable)
@@ -411,12 +488,50 @@ open class ZLEditImageViewController: UIViewController {
     override open func viewDidLoad() {
         super.viewDidLoad()
         
+        NotificationCenter.default.addObserver(self, selector: #selector(self.methodOfReceivedNotification(notification:)), name: Notification.Name("NotificationIdentifier"), object: nil)
+        
+        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
+        layersCollectionView.addGestureRecognizer(longPressGesture)
+        
         setupUI()
         
         rotationImageView()
         if tools.contains(.filter) {
             generateFilterImages()
         }
+        
+        ZoomeInOutBtn.setTitle("Zoome In", for: .normal)
+        ZoomeInOutBtn.setTitleColor(.white, for: .normal)
+        ZoomeInOutBtn.addTarget(self, action: #selector(zoomInOutBtnClick), for: .touchUpInside)
+        ZoomeInOutBtn.translatesAutoresizingMaskIntoConstraints = false
+        topShadowView.addSubview(ZoomeInOutBtn)
+        
+        layersBtn.setTitle("Layers", for: .normal)
+        layersBtn.setTitleColor(.white, for: .normal)
+        layersBtn.addTarget(self, action: #selector(layersBtnClick), for: .touchUpInside)
+        layersBtn.translatesAutoresizingMaskIntoConstraints = false
+        topShadowView.addSubview(layersBtn)
+        
+        layersView.translatesAutoresizingMaskIntoConstraints = false
+        //layersView.isHidden = true
+        view.addSubview(layersView)
+        
+        layersCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        layersView.addSubview(layersCollectionView)
+        
+        resizeCropBtn.setTitle("Crop", for: .normal)
+        resizeCropBtn.setTitleColor(.white, for: .normal)
+        resizeCropBtn.addTarget(self, action: #selector(resizeBtnClick), for: .touchUpInside)
+        resizeCropBtn.translatesAutoresizingMaskIntoConstraints = false
+        topShadowView.addSubview(resizeCropBtn)
+        
+        resizeView.translatesAutoresizingMaskIntoConstraints = false
+        //layersView.isHidden = true
+        bottomShadowView.addSubview(resizeView)
+        
+        resizeCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        resizeView.addSubview(resizeCollectionView)
+        
     }
     
     override open func viewDidLayoutSubviews() {
@@ -497,11 +612,259 @@ open class ZLEditImageViewController: UIViewController {
         if let index = drawColors.firstIndex(where: { $0 == self.currentDrawColor }) {
             drawColorCollectionView?.scrollToItem(at: IndexPath(row: index, section: 0), at: .centeredHorizontally, animated: false)
         }
+        
+        layersViewWidthConstraint = NSLayoutConstraint(item: layersView, attribute: .width, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: layersViewHalfwidth)
+        
+        NSLayoutConstraint.activate([
+            
+            ZoomeInOutBtn.topAnchor.constraint(equalTo: topShadowView.topAnchor, constant: 10),
+            ZoomeInOutBtn.trailingAnchor.constraint(equalTo: topShadowView.trailingAnchor, constant: 2.5),
+            ZoomeInOutBtn.widthAnchor.constraint(equalToConstant: 100),
+            ZoomeInOutBtn.heightAnchor.constraint(equalToConstant: 30),
+            
+            layersBtn.topAnchor.constraint(equalTo: ZoomeInOutBtn.bottomAnchor, constant: 5),
+            layersBtn.trailingAnchor.constraint(equalTo: topShadowView.trailingAnchor, constant: 2.5),
+            layersBtn.widthAnchor.constraint(equalToConstant: 100),
+            layersBtn.heightAnchor.constraint(equalToConstant: 30),
+            
+            layersView.topAnchor.constraint(equalTo: view.topAnchor, constant: 120),
+            //layersView.widthAnchor.constraint(equalToConstant: 85),
+            layersView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -120),
+            layersView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 0),
+            //layersView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
+            //layersView.heightAnchor.constraint(equalToConstant: 260),
+            
+            layersCollectionView.topAnchor.constraint(equalTo: layersView.topAnchor, constant: 0),
+            layersCollectionView.bottomAnchor.constraint(equalTo: layersView.bottomAnchor, constant: 0),
+            layersCollectionView.trailingAnchor.constraint(equalTo: layersView.trailingAnchor, constant: 0),
+            layersCollectionView.leadingAnchor.constraint(equalTo: layersView.leadingAnchor, constant: 0),
+            
+            resizeCropBtn.topAnchor.constraint(equalTo: layersBtn.bottomAnchor, constant: 5),
+            resizeCropBtn.trailingAnchor.constraint(equalTo: layersBtn.trailingAnchor, constant: 0),
+            resizeCropBtn.widthAnchor.constraint(equalToConstant: 100),
+            resizeCropBtn.heightAnchor.constraint(equalToConstant: 30),
+            
+            //resizeView.topAnchor.constraint(equalTo: view.topAnchor, constant: 120),
+            //resizeView.widthAnchor.constraint(equalToConstant: 85),
+            //resizeView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -120),
+            //resizeView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
+            ////resizeView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
+            ////resizeView.heightAnchor.constraint(equalToConstant: 260),
+            
+            //resizeView.topAnchor.constraint(equalTo: view.topAnchor, constant: 120),
+            //layersView.widthAnchor.constraint(equalToConstant: 85),
+            resizeView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 0),
+            resizeView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 0),
+            resizeView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
+            resizeView.heightAnchor.constraint(equalToConstant: 100),
+            
+            resizeCollectionView.topAnchor.constraint(equalTo: resizeView.topAnchor, constant: 0),
+            resizeCollectionView.bottomAnchor.constraint(equalTo: resizeView.bottomAnchor, constant: 0),
+            resizeCollectionView.trailingAnchor.constraint(equalTo: resizeView.trailingAnchor, constant: 0),
+            resizeCollectionView.leadingAnchor.constraint(equalTo: resizeView.leadingAnchor, constant: 0),
+            
+        ])
+        
+        layersView.addConstraint(layersViewWidthConstraint!)
+        
     }
 
     override open func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         shouldLayout = true
+    }
+    
+    @objc func handleLongPressGesture(_ gestureRecognizer: UILongPressGestureRecognizer) {
+        switch gestureRecognizer.state {
+        case .began:
+            guard let selectedIndexPath = layersCollectionView.indexPathForItem(at: gestureRecognizer.location(in: layersCollectionView)) else {
+                return
+            }
+            layersCollectionView.beginInteractiveMovementForItem(at: selectedIndexPath)
+            
+        case .changed:
+            layersCollectionView.updateInteractiveMovementTargetPosition(gestureRecognizer.location(in: layersCollectionView))
+            
+        case .ended:
+            layersCollectionView.endInteractiveMovement()
+            
+        default:
+            layersCollectionView.cancelInteractiveMovement()
+        }
+    }
+    
+    //MARK: - - - - - Method for receiving Data through Post Notificaiton - - - - -
+    @objc func methodOfReceivedNotification(notification: Notification) {
+        
+        print("Value of notification : ", notification.object ?? "")
+        
+        rearrangedSticker.removeAll()
+        rearrangedSticker = stickersContainer.subviews
+        
+        //for (index, view) in stickersContainer.subviews.enumerated() {
+        //
+        //    self.rearrangedSticker.append(view)
+        //
+        //}
+        
+        layersCollectionView.reloadData()
+        
+    }
+    
+    @objc func zoomInOutBtnClick() {
+        
+        if flagZoom == false {
+            
+            ZoomeInOutBtn.setTitle("Zoome Out", for: .normal)
+            zoomOutCanvas()
+            flagZoom = true
+        }else {
+            
+            ZoomeInOutBtn.setTitle("Zoome In", for: .normal)
+            resetZoomOutCanvas(1.0)
+            flagZoom = false
+            
+        }
+        
+    }
+    
+    @objc func layersBtnClick() {
+        
+        layersCollectionView.reloadData()
+        
+        if flagLayers == false {
+            
+            //layersView.isHidden = false
+            flagLayers = true
+            
+            UIView.animate(withDuration: 0.2,
+                           delay: 0.2,
+                           options: UIView.AnimationOptions.curveEaseIn,
+                           animations: {
+                self.layersViewWidthConstraint?.constant = self.layersViewFullWidth
+                self.view.layoutIfNeeded()
+            },completion: nil)
+            
+            //ZoomeInOutBtn.setTitle("Zoome Out", for: .normal)
+            //zoomOutCanvas()
+            //flagZoom = true
+            
+        }else {
+            
+            //layersView.isHidden = true
+            flagLayers = false
+            
+            UIView.animate(withDuration: 0.2, delay: 0.2, options: UIView.AnimationOptions.curveEaseIn, animations: {
+                self.layersViewWidthConstraint?.constant = self.layersViewHalfwidth
+                self.view.layoutIfNeeded()
+            }, completion: nil)
+            
+            //ZoomeInOutBtn.setTitle("Zoome In", for: .normal)
+            //resetZoomOutCanvas(1.0)
+            //flagZoom = false
+            
+        }
+        
+    }
+    
+    @objc func resizeBtnClick() {
+        
+//        if flagResizeCrop == false {
+//            resizeView.isHidden = false
+//            resizeView.bringSubviewToFront(view)
+//            flagResizeCrop = true
+//        }else {
+//            resizeView.isHidden = true
+//            flagResizeCrop = false
+//        }
+        
+        var currentEditImage = editImage
+        autoreleasepool {
+            currentEditImage = buildImage()
+        }
+        
+        let VC = ResizeCropViewController()
+        VC.originalImage = currentEditImage
+        
+        VC.backData = { [weak self] image in
+            guard let self = self else { return }
+            
+            print(image)
+            //self.imageView.image = image
+            
+        }
+        
+        VC.modalPresentationStyle = .fullScreen
+        present(VC, animated: true, completion: nil)
+        //navigationController?.pushViewController(VC, animated: true)
+        
+//        let VC = AnotherResizeViewController()
+//        present(VC, animated: true, completion: nil)
+        
+    }
+    
+    func resizeImageWithAspectRatio(image: UIImage, targetRatio: CGFloat) -> UIImage? {
+        let size = image.size
+        let originalAspectRatio = size.width / size.height
+        
+        var newSize: CGSize
+        if originalAspectRatio > targetRatio {
+            newSize = CGSize(width: size.height * targetRatio, height: size.height)
+        } else {
+            newSize = CGSize(width: size.width, height: size.width / targetRatio)
+        }
+        
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let resizedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+        
+        return resizedImage
+    }
+    
+    func calculateResizedSize(originalSize: CGSize, targetRatio: CGFloat) -> CGSize {
+        let originalAspectRatio = originalSize.width / originalSize.height
+        
+        var newSize: CGSize
+        if originalAspectRatio > targetRatio {
+            newSize = CGSize(width: originalSize.height * targetRatio, height: originalSize.height)
+        } else {
+            newSize = CGSize(width: originalSize.width, height: originalSize.width / targetRatio)
+        }
+        
+        return newSize
+    }
+    
+    func zoomOutCanvas(isColorSelection: Bool = false) {
+        
+        mainScrollView.transform = CGAffineTransform.identity
+        containerView.frame.origin = CGPoint.zero
+        mainScrollView.frame = CGRect(x: 0, y: 0, width: containerView.frame.size.width, height: containerView.frame.size.height)
+        mainScrollView.minimumZoomScale = 1.0
+        mainScrollView.maximumZoomScale = 10.0
+        mainScrollView.contentOffset = CGPoint.zero
+        
+        UIView.animate(withDuration: 0.25, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseIn, animations: { [weak self] in
+            guard let self = self else {return}
+            let scrollY = self.mainScrollView.center.y
+            self.mainScrollView.transform = CGAffineTransform(scaleX: 0.75, y: 0.75)
+            let height = 260.0 - 200.0 //self.controlPanel.frame.height - 44.0
+            self.viewCenterY = self.containerView.center.y
+            self.mainScrollView.center = CGPoint(x: self.mainScrollView.center.x, y: self.mainScrollView.center.y - CGFloat(height/2))
+        }, completion: nil)
+        
+    }
+    
+    func resetZoomOutCanvas(_ centerY:CGFloat) {
+        
+        UIView.animate(withDuration: 0.25, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseIn, animations: { [weak self] in
+            guard let self = self else {return}
+            self.mainScrollView.transform = CGAffineTransform.identity
+            //self.mainScrollView.transform = CGAffineTransform(scaleX: 1.0, y: 1.0)
+            self.mainScrollView.center = self.view.center //CGPoint(x: self.mainScrollView.center.x, y: 0)
+            self.mainScrollView.setZoomScale(1.0, animated: false)
+        }, completion: nil)
+        
     }
     
     func generateFilterImages() {
@@ -574,6 +937,8 @@ open class ZLEditImageViewController: UIViewController {
     
     func setupUI() {
         view.backgroundColor = .black
+        
+        resizeView.isHidden = true
         
         view.addSubview(mainScrollView)
         mainScrollView.addSubview(containerView)
@@ -751,6 +1116,7 @@ open class ZLEditImageViewController: UIViewController {
         mainScrollView.panGestureRecognizer.require(toFail: panGes)
         
         stickers.forEach { view in
+            print(view)
             self.stickersContainer.addSubview(view)
             if let tv = view as? ZLTextStickerView {
                 tv.frame = tv.originFrame
@@ -918,12 +1284,37 @@ open class ZLEditImageViewController: UIViewController {
     @objc func doneBtnClick() {
         var textStickers: [(ZLTextStickerState, Int)] = []
         var imageStickers: [(ZLImageStickerState, Int)] = []
+        var layersImage = [UIImage]()
         for (index, view) in stickersContainer.subviews.enumerated() {
             if let ts = view as? ZLTextStickerView, let _ = ts.label.text {
+                print(ts.state.originFrame)
                 textStickers.append((ts.state, index))
+                print(ts.state.originFrame)
+                
             } else if let ts = view as? ZLImageStickerView {
+                print(ts.state.originFrame)
                 imageStickers.append((ts.state, index))
+                print(ts.state.originFrame)
+                
             }
+            
+            //TODO: - For making layers => Convert any thing to UIImage
+            
+            let image = UIImage(view: view)
+            print(image)
+            layersImage.append(image)
+            print(layersImage)
+            
+            stickers.forEach { view in
+                print(view)
+            }
+            
+            print(rearrangedSticker)
+            print(stickers)
+            //print(view.subviews)
+            
+            //TODO: - End
+            
         }
         
         var hasEdit = true
@@ -993,6 +1384,7 @@ open class ZLEditImageViewController: UIViewController {
                 return
             }
             let path = redoDrawPaths[drawPaths.count]
+            print(path)
             drawPaths.append(path)
             revokeBtn.isEnabled = !drawPaths.isEmpty
             redoBtn?.isEnabled = drawPaths.count != redoDrawPaths.count
@@ -1019,7 +1411,7 @@ open class ZLEditImageViewController: UIViewController {
     
     @objc func drawAction(_ pan: UIPanGestureRecognizer) {
         if selectedTool == .draw {
-            let point = pan.location(in: drawingImageView)
+            let point = pan.location(in: drawingImageView) //stickersContainer //drawingImageView
             if pan.state == .began {
                 setToolView(show: false)
                 
@@ -1227,24 +1619,56 @@ open class ZLEditImageViewController: UIViewController {
         
         let imageSticker = ZLImageStickerView(image: image, originScale: 1 / scale, originAngle: -angle, originFrame: originFrame)
         stickersContainer.addSubview(imageSticker)
+        
+        print(rearrangedSticker)
         imageSticker.frame = originFrame
         view.layoutIfNeeded()
         
         configImageSticker(imageSticker)
+        
+        //self.rearrangedSticker.append(imageSticker)
+        
+        rearrangedSticker.removeAll()
+        rearrangedSticker = stickersContainer.subviews
+        
+        //for (index, view) in stickersContainer.subviews.enumerated() {
+        //
+        //    self.rearrangedSticker.append(view)
+        //
+        //}
+        
+        layersCollectionView.reloadData()
+        
     }
     
     /// Add text sticker
     func addTextStickersView(_ text: String, textColor: UIColor, font: UIFont? = nil, bgColor: UIColor) {
         guard !text.isEmpty else { return }
         let scale = mainScrollView.zoomScale
-        let size = ZLTextStickerView.calculateSize(text: text, width: view.frame.width, font: font)
+        let size = ZLTextStickerView.calculateSize(text: text, width: view.frame.width - 20, font: font)
         let originFrame = getStickerOriginFrame(size)
         
         let textSticker = ZLTextStickerView(text: text, textColor: textColor, font: font, bgColor: bgColor, originScale: 1 / scale, originAngle: -angle, originFrame: originFrame)
         stickersContainer.addSubview(textSticker)
+        
+        print(rearrangedSticker)
         textSticker.frame = originFrame
         
         configTextSticker(textSticker)
+        
+        //self.rearrangedSticker.append(textSticker)
+        
+        rearrangedSticker.removeAll()
+        rearrangedSticker = stickersContainer.subviews
+        
+        //for (index, view) in stickersContainer.subviews.enumerated() {
+        //
+        //    self.rearrangedSticker.append(view)
+        //
+        //}
+        
+        layersCollectionView.reloadData()
+        
     }
     
     func configTextSticker(_ textSticker: ZLTextStickerView) {
@@ -1453,6 +1877,10 @@ extension ZLEditImageViewController: UIScrollViewDelegate {
         return containerView
     }
     
+    func viewForZoomingInScrollView(scrollView: UIScrollView) -> UIView? {
+        return containerView
+    }
+    
     public func scrollViewDidZoom(_ scrollView: UIScrollView) {
         let offsetX = (scrollView.frame.width > scrollView.contentSize.width) ? (scrollView.frame.width - scrollView.contentSize.width) * 0.5 : 0
         let offsetY = (scrollView.frame.height > scrollView.contentSize.height) ? (scrollView.frame.height - scrollView.contentSize.height) * 0.5 : 0
@@ -1494,7 +1922,13 @@ extension ZLEditImageViewController: UIScrollViewDelegate {
 
 extension ZLEditImageViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if collectionView == editToolCollectionView {
+        if collectionView == resizeCollectionView {
+            //LayersCollectionViewCell
+            return ratioData.count
+        }else if collectionView == layersCollectionView {
+            //LayersCollectionViewCell
+            return rearrangedSticker.count
+        }else if collectionView == editToolCollectionView {
             return tools.count
         } else if collectionView == drawColorCollectionView {
             return drawColors.count
@@ -1506,7 +1940,27 @@ extension ZLEditImageViewController: UICollectionViewDataSource, UICollectionVie
     }
     
     public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if collectionView == editToolCollectionView {
+        if collectionView == resizeCollectionView {
+            //LayersCollectionViewCell
+            guard let cell = resizeCollectionView.dequeueReusableCell(withReuseIdentifier: "RatiosCollectionViewCell", for: indexPath) as? RatiosCollectionViewCell else { return UICollectionViewCell() }
+            
+            cell.containerView.layer.cornerRadius = 10
+            cell.containerView.layer.masksToBounds = true
+            cell.containerView.backgroundColor = .gray.withAlphaComponent(0.7)
+            
+            cell.ratiosLabelOutlet.text = ratioData[indexPath.item]
+            
+            return cell
+            
+        }else if collectionView == layersCollectionView {
+            guard let cell = layersCollectionView.dequeueReusableCell(withReuseIdentifier: "LayersCollectionViewCell", for: indexPath) as? LayersCollectionViewCell else { return UICollectionViewCell() }
+            cell.backgroundColor = .clear
+            cell.containerView.backgroundColor = .clear
+            cell.layersView.backgroundColor = .clear
+            cell.layersImage.image = UIImage(view: rearrangedSticker[indexPath.row])
+            
+            return cell
+        }else if collectionView == editToolCollectionView {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ZLEditToolCell.zl.identifier, for: indexPath) as! ZLEditToolCell
             
             let toolType = tools[indexPath.row]
@@ -1564,7 +2018,111 @@ extension ZLEditImageViewController: UICollectionViewDataSource, UICollectionVie
     }
     
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        if collectionView == editToolCollectionView {
+        if collectionView == resizeCollectionView {
+            
+            if indexPath.item == 0 {
+                
+                print(indexPath.item)
+                let resizedImage = resizeImageWithAspectRatio(image: originalImage, targetRatio: 1.0)
+                let resizedSize = calculateResizedSize(originalSize: imageView.frame.size, targetRatio: 1.0)
+                let editSize = editRect.size
+                let scrollViewSize = mainScrollView.frame.size
+                let ratio = min(scrollViewSize.width / editSize.width, scrollViewSize.height / editSize.height)
+                let scaleImageOrigin = CGPoint(x: -editRect.origin.x * ratio, y: -editRect.origin.y * ratio)
+                //containerView.frame = CGRect(origin: scaleImageOrigin, size: resizedSize)
+                imageView.image = resizedImage
+                stickersContainer.frame = imageView.frame //CGRect(origin: scaleImageOrigin, size: resizedSize) //imageView.frame
+                view.layoutIfNeeded()
+                stickersContainer.layoutIfNeeded()
+                
+//                stickersContainer.subviews.forEach { $0.removeFromSuperview() }
+//                rearrangedSticker.forEach { view in
+//
+//                    if let tv = view as? ZLTextStickerView {
+//
+//
+//
+//                    }else if let iv = view as? ZLImageStickerView {
+//
+//
+//
+//                    }
+//
+//                }
+                
+//                rearrangedSticker.forEach { view in
+//                    print(view)
+//                    self.stickersContainer.addSubview(view)
+//                    if let tv = view as? ZLTextStickerView {
+////                        //tv.frame = tv.originFrame
+////                        tv.frame = CGRect(x: (imageView.frame.width - tv.originFrame.width) / 2, y: (imageView.frame.height - tv.originFrame.height) / 2, width: tv.originFrame.width, height: tv.originFrame.height)
+//
+//                        tv.frame = CGRect(origin: scaleImageOrigin, size: resizedSize)
+//
+//                        self.configTextSticker(tv)
+//                    } else if let iv = view as? ZLImageStickerView {
+////                        //iv.frame = iv.originFrame
+////                        iv.frame = CGRect(x: (imageView.frame.width - iv.originFrame.width) / 2, y: (imageView.frame.height - iv.originFrame.height) / 2, width: iv.originFrame.width, height: iv.originFrame.height)
+//
+//                        iv.frame = CGRect(origin: scaleImageOrigin, size: resizedSize)
+//
+//                        self.configImageSticker(iv)
+//                    }
+//                }
+                
+            }else {
+                
+                print(indexPath.item)
+                let resizedImage = resizeImageWithAspectRatio(image: originalImage, targetRatio: 9.0/16.0)
+                let resizedSize = calculateResizedSize(originalSize: imageView.frame.size, targetRatio: 9.0/16.0)
+                let editSize = editRect.size
+                let scrollViewSize = mainScrollView.frame.size
+                let ratio = min(scrollViewSize.width / editSize.width, scrollViewSize.height / editSize.height)
+                let scaleImageOrigin = CGPoint(x: -editRect.origin.x * ratio, y: -editRect.origin.y * ratio)
+                //containerView.frame = CGRect(origin: scaleImageOrigin, size: resizedSize)
+                imageView.image = resizedImage
+                stickersContainer.frame = CGRect(origin: scaleImageOrigin, size: resizedSize) //CGRect(origin: scaleImageOrigin, size: resizedSize) //imageView.frame
+                view.layoutIfNeeded()
+                stickersContainer.layoutIfNeeded()
+                
+//                stickersContainer.subviews.forEach { $0.removeFromSuperview() }
+//                rearrangedSticker.forEach { view in
+//
+//                    if let tv = view as? ZLTextStickerView {
+//
+//
+//
+//                    }else if let iv = view as? ZLImageStickerView {
+//
+//
+//
+//                    }
+//
+//                }
+                
+//                rearrangedSticker.forEach { view in
+//                    print(view)
+//                    self.stickersContainer.addSubview(view)
+//                    if let tv = view as? ZLTextStickerView {
+////                        //tv.frame = tv.originFrame
+////                        tv.frame = CGRect(x: (imageView.frame.width - tv.originFrame.width) / 2, y: (imageView.frame.height - tv.originFrame.height) / 2, width: tv.originFrame.width, height: tv.originFrame.height)
+//
+//                        tv.frame = CGRect(origin: scaleImageOrigin, size: resizedSize)
+//
+//                        self.configTextSticker(tv)
+//                    } else if let iv = view as? ZLImageStickerView {
+////                        //iv.frame = iv.originFrame
+////                        iv.frame = CGRect(x: (imageView.frame.width - iv.originFrame.width) / 2, y: (imageView.frame.height - iv.originFrame.height) / 2, width: iv.originFrame.width, height: iv.originFrame.height)
+//
+//                        iv.frame = CGRect(origin: scaleImageOrigin, size: resizedSize)
+//
+//                        self.configImageSticker(iv)
+//                    }
+//                }
+                
+            }
+            
+        }else if collectionView == editToolCollectionView {
             let toolType = tools[indexPath.row]
             switch toolType {
             case .draw:
@@ -1621,6 +2179,37 @@ extension ZLEditImageViewController: UICollectionViewDataSource, UICollectionVie
         collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
         collectionView.reloadData()
     }
+    
+    public func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool {
+        if collectionView == layersCollectionView {
+            return true
+            
+        }else {
+            return false
+        }
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        if collectionView == layersCollectionView {
+            
+            let subview = rearrangedSticker.remove(at: sourceIndexPath.item)
+            rearrangedSticker.insert(subview, at: destinationIndexPath.item)
+            
+            //for view in stickersContainer.subviews {
+            //    view.removeFromSuperview()
+            //}
+            
+            stickersContainer.subviews.forEach { $0.removeFromSuperview() }
+            
+            rearrangedSticker.forEach { view in stickersContainer.addSubview(view) }
+            
+            rearrangedSticker.removeAll()
+            rearrangedSticker = stickersContainer.subviews
+            
+            layersCollectionView.reloadData()
+            
+        }
+    }
 }
 
 extension ZLEditImageViewController: ZLStickerViewDelegate {
@@ -1676,6 +2265,8 @@ extension ZLEditImageViewController: ZLStickerViewDelegate {
         let point = panGes.location(in: view)
         if ashbinView.frame.contains(point) {
             (sticker as? ZLStickerViewAdditional)?.moveToAshbin()
+            rearrangedSticker = stickersContainer.subviews
+            layersCollectionView.reloadData()
         }
         
         stickersContainer.subviews.forEach { view in
@@ -1688,6 +2279,25 @@ extension ZLEditImageViewController: ZLStickerViewDelegate {
             if view !== sticker {
                 (view as? ZLStickerViewAdditional)?.resetState()
             }
+            
+            rearrangedSticker.removeAll()
+            rearrangedSticker = stickersContainer.subviews
+            layersCollectionView.reloadData()
+            
+            //for view in stickersContainer.subviews {
+            //    view.removeFromSuperview()
+            //}
+            //
+            //rearrangedSticker.forEach { view in
+            //
+            //    stickersContainer.addSubview(view)
+            //
+            //}
+            
+            stickersContainer.subviews.forEach { $0.removeFromSuperview() }
+            
+            rearrangedSticker.forEach { view in stickersContainer.addSubview(view) }
+            
         }
     }
     
@@ -1782,5 +2392,25 @@ public class ZLMosaicPath: NSObject {
     func addLine(to point: CGPoint) {
         path.addLine(to: point)
         linePoints.append(CGPoint(x: point.x / ratio, y: point.y / ratio))
+    }
+}
+
+extension UIView {
+    func subviews<T:UIView>(ofType WhatType:T.Type) -> [T] {
+        var result = self.subviews.compactMap {$0 as? T}
+        for sub in self.subviews {
+            result.append(contentsOf: sub.subviews(ofType:WhatType))
+        }
+        return result
+    }
+}
+
+extension UIImage {
+    convenience init(view: UIView) {
+        UIGraphicsBeginImageContext(view.frame.size)
+        view.layer.render(in:UIGraphicsGetCurrentContext()!)
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        self.init(cgImage: image!.cgImage!)
     }
 }

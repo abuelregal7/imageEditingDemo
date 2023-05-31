@@ -146,12 +146,12 @@ extension PhotoEditorViewController : UIGestureRecognizerDelegate  {
         let previouTransform =  view.transform
         UIView.animate(withDuration: 0.2,
                        animations: {
-                        view.transform = view.transform.scaledBy(x: 1.2, y: 1.2)
+            view.transform = view.transform.scaledBy(x: 1.2, y: 1.2)
         },
                        completion: { _ in
-                        UIView.animate(withDuration: 0.2) {
-                            view.transform  = previouTransform
-                        }
+            UIView.animate(withDuration: 0.2) {
+                view.transform  = previouTransform
+            }
         })
     }
     
@@ -168,7 +168,7 @@ extension PhotoEditorViewController : UIGestureRecognizerDelegate  {
         
         view.superview?.bringSubviewToFront(view)
         let pointToSuperView = recognizer.location(in: self.view)
-
+        
         view.center = CGPoint(x: view.center.x + recognizer.translation(in: canvasImageView).x,
                               y: view.center.y + recognizer.translation(in: canvasImageView).y)
         
@@ -186,7 +186,7 @@ extension PhotoEditorViewController : UIGestureRecognizerDelegate  {
                     view.center = recognizer.location(in: self.canvasImageView)
                 })
             }
-                //View is going out of deleteView
+            //View is going out of deleteView
             else if deleteView.frame.contains(previousPoint) && !deleteView.frame.contains(pointToSuperView) {
                 //Scale to original Size
                 UIView.animate(withDuration: 0.3, animations: {

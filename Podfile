@@ -10,6 +10,7 @@ target 'Templetes' do
   pod 'Brightroom/Engine'
   pod 'Brightroom/UI-Classic'
   pod 'Brightroom/UI-Crop'
+  pod 'AIImageResize'
 
   #pod 'ZLImageEditor'
 

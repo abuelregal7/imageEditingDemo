@@ -27,7 +27,7 @@
 import UIKit
 
 class ZLImageStickerView: ZLBaseStickerView<ZLImageStickerState> {
-    private let image: UIImage
+    let image: UIImage
     
     private lazy var imageView: UIImageView = {
         let view = UIImageView(image: image)
@@ -95,8 +95,54 @@ class ZLImageStickerView: ZLBaseStickerView<ZLImageStickerState> {
         fatalError("init(coder:) has not been implemented")
     }
     
+    func setupCloseAndRotateView() {
+        closeView = UIButton(frame: CGRect(x: -15, y: -15, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6)) //UIImageView(frame: CGRect(x: 0, y: 0, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        closeView?.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
+        //closeView!.layer.borderColor = UIColor(red: 33, green: 45, blue: 59, alpha: 1).cgColor
+        //closeView!.layer.borderWidth = 3
+        closeView?.contentMode = .scaleAspectFill
+        closeView?.clipsToBounds = true
+        closeView?.backgroundColor = UIColor.clear
+        closeView?.layer.cornerRadius = globalInset! - 10
+        closeView?.setImage(UIImage(named: "cancel"), for: .normal)
+        //closeView?.isUserInteractionEnabled = true
+        
+        addSubview(closeView!)
+        //self.bringSubviewToFront(closeView!)
+        
+        resizeView = UIImageView(frame: CGRect(x: self.bounds.size.width - globalInset! * 2 + 20, y: self.bounds.size.height - globalInset! * 2 + 20, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        resizeView?.autoresizingMask = [.flexibleLeftMargin, .flexibleTopMargin]
+        resizeView?.backgroundColor = UIColor.clear
+        resizeView?.layer.cornerRadius =  globalInset! - 10
+        //rotateView?.layer.borderColor = UIColor.white.cgColor
+        //rotateView?.layer.borderWidth = 3
+        resizeView?.clipsToBounds = true
+        resizeView?.image = UIImage(named: "rotate")
+        resizeView?.contentMode = .scaleAspectFit
+        resizeView?.isUserInteractionEnabled = true
+        addSubview(resizeView!)
+        //self.bringSubviewToFront(resizeView!)
+        
+        rotateView = UIImageView(frame: CGRect(x: -15, y: self.bounds.size.height - globalInset! * 2 + 15, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        rotateView?.autoresizingMask = [.flexibleRightMargin, .flexibleTopMargin]
+        rotateView?.backgroundColor = UIColor.clear
+        rotateView?.layer.cornerRadius =  globalInset! - 10
+        //rotateView?.layer.borderColor = UIColor.white.cgColor
+        //rotateView?.layer.borderWidth = 3
+        rotateView?.clipsToBounds = true
+        rotateView?.image = UIImage(named: "rotate-option")
+        rotateView?.contentMode = .scaleAspectFit
+        rotateView?.isUserInteractionEnabled = true
+        addSubview(rotateView!)
+        //self.bringSubviewToFront(rotateView!)
+
+    }
+    
     override func setupUIFrameWhenFirstLayout() {
         imageView.frame = bounds.insetBy(dx: ZLStickerLayout.edgeInset, dy: ZLStickerLayout.edgeInset)
+        
+        setupCloseAndRotateView()
+        
     }
     
     class func calculateSize(image: UIImage, width: CGFloat) -> CGSize {
@@ -113,6 +159,7 @@ class ZLImageStickerView: ZLBaseStickerView<ZLImageStickerState> {
             let w = h * whRatio
             size = CGSize(width: w, height: h)
         }
+        
         size.width += ZLStickerLayout.edgeInset * 2
         size.height += ZLStickerLayout.edgeInset * 2
         return size

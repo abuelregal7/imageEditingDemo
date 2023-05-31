@@ -36,19 +36,10 @@ class ZLImageEditorDemoVC: UIViewController {
     
     let config = ZLImageEditorConfiguration.default()
     
-    //let config2 = ZLImageClipRatio.default()
-    
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupUI()
-        
-        config
-            .editImageTools([.draw, .clip, .imageSticker, .textSticker, .mosaic, .filter, .adjust])
-            .adjustTools([.brightness, .contrast, .saturation])
-        
-        config.clipRatios = [.custom, .circle, .wh1x1, .wh3x4, .wh4x3, .wh2x3, .wh3x2, .wh9x16, .wh16x9]
         
         configImageEditor()
         
@@ -228,21 +219,29 @@ class ZLImageEditorDemoVC: UIViewController {
     }
     
     func configImageEditor() {
-//        ZLImageEditorUIConfiguration.default()
-//            .languageType(.english)
-//            .customLanguageConfig(
-//                [
-//                    .cancel: "×",
-//                    .editFinish: "👌"
-//                ]
-//            )
+        
+        //ZLImageEditorUIConfiguration.default()
+        //    .languageType(.english)
+        //    .customLanguageConfig(
+        //        [
+        //            .cancel: "❌",
+        //            .editFinish: "👌"
+        //
+        //        ]
+        //    )
+        
+        config
+            .editImageTools([.draw, .clip, .imageSticker, .textSticker, .mosaic, .filter, .adjust])
+            .adjustTools([.brightness, .contrast, .saturation])
+        
+        config.clipRatios = [.custom, .circle, .wh1x1, .wh3x4, .wh4x3, .wh2x3, .wh3x2, .wh9x16, .wh16x9]
         
         ZLImageEditorConfiguration.default()
             // Provide a image sticker container view
             .imageStickerContainerView(ImageStickerContainerView())
             .fontChooserContainerView(FontChooserContainerView())
             // Custom filter
-//            .filters = [.normal]
+            //.filters = [.normal]
             .canRedo(true)
         
     }

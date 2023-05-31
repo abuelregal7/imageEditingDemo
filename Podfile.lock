@@ -1,4 +1,5 @@
 PODS:
+  - AIImageResize (1.3.0)
   - Brightroom/Engine (2.8.0):
     - Verge/Store (>= 8.19.0)
   - Brightroom/UI-Classic (2.8.0):
@@ -14,21 +15,24 @@ PODS:
     - Verge/ObjcBridge
 
 DEPENDENCIES:
+  - AIImageResize
   - Brightroom/Engine
   - Brightroom/UI-Classic
   - Brightroom/UI-Crop
 
 SPEC REPOS:
   trunk:
+    - AIImageResize
     - Brightroom
     - TransitionPatch
     - Verge
 
 SPEC CHECKSUMS:
+  AIImageResize: 951d2089f0e6bdce24563261fc0ddf6d3ccdc347
   Brightroom: 458ac052ac38d2f2ff2d7bd990808f6dee450ba4
   TransitionPatch: e401775146cbe326605b7009c7e7442184a444f0
   Verge: 5199d7de11162b5568697dabdfab4f83d99d6436
 
-PODFILE CHECKSUM: 4fd596dfa5983139b4249c77953e4c609cfc0fb8
+PODFILE CHECKSUM: 46e09789ca0d965eb6d078066b8f07fb498871d2
 
 COCOAPODS: 1.11.3

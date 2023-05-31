@@ -27,23 +27,42 @@
 import UIKit
 
 class ZLInputTextViewController: UIViewController {
-    static let collectionViewHeight: CGFloat = 50
+    
+    static let collectionViewHeight: CGFloat = 0 //50
     
     let image: UIImage?
     
     var text: String
-
+    
     var font: UIFont?
     
     var cancelBtn: UIButton!
     
     var doneBtn: UIButton!
     
+    var colorsBtn = UIButton(type: .custom)
+    
     var textView: UITextView!
     
     var collectionView: UICollectionView!
     
     var currentTextColor: UIColor
+    
+    var colorPickerView  =  EFRGBView()
+    var cancelColorBtn   =  UIButton(type: .custom)
+    var titleTextLabel   =  UILabel()
+    var doneColorBtn     =  UIButton(type: .custom)
+    var dividerView      =  UIView()
+    var alphaLabel  =  UILabel()
+    var alphaSlider = UISlider()
+    lazy var colorPlate : ColorPickerView =  {
+        return ColorPickerView()
+    }()
+    
+    var colorToChange = "text"
+    var currentTextAlpha: Float = 1.0 // 0.0
+    var strokeAlpha: Float = 5.5 // 0.0
+    var strokeColor: UIColor = .clear
     
     /// text, textColor, bgColor
     var endInput: ((String, UIFont, UIColor, UIColor) -> Void)?
@@ -79,7 +98,7 @@ class ZLInputTextViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         setupUI()
         
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIApplication.keyboardWillShowNotification, object: nil)
@@ -113,6 +132,7 @@ class ZLInputTextViewController: UIViewController {
     }
     
     func setupUI() {
+        
         view.backgroundColor = .black
         
         let bgImageView = UIImageView(image: image?.zl.blurImage(level: 4))
@@ -163,6 +183,107 @@ class ZLInputTextViewController: UIViewController {
         view.addSubview(collectionView)
         
         ZLDrawColorCell.zl.register(collectionView)
+        
+        //colorPickerView.frame.size = CGSize(width: self.view.frame.width, height: 210)
+        colorPickerView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(colorPickerView)
+        colorPickerView.delegate = self
+        colorPickerView.isHidden = true
+        colorPickerView.color = .white
+        
+        colorsBtn.setTitle("Colors", for: .normal)
+        colorsBtn.addTarget(self, action: #selector(colorsBtnClick), for: .touchUpInside)
+        colorsBtn.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(colorsBtn)
+        
+        cancelColorBtn.setTitle("Cancel", for: .normal)
+        cancelColorBtn.setTitleColor(.black, for: .normal)
+        cancelColorBtn.addTarget(self, action: #selector(cancelColorBtnClick), for: .touchUpInside)
+        
+        doneColorBtn.setTitle("Done", for: .normal)
+        doneColorBtn.setTitleColor(.black, for: .normal)
+        doneColorBtn.addTarget(self, action: #selector(doneColorBtnClick), for: .touchUpInside)
+        
+        titleTextLabel.text = "Colors"
+        titleTextLabel.textColor = .black
+        titleTextLabel.textAlignment = .center
+        
+        alphaLabel.textAlignment = .right
+        alphaLabel.textAlignment = .right
+        alphaLabel.text = "opacity"//.Localised()   //"Alpha"
+        alphaLabel.adjustsFontSizeToFitWidth = true
+        
+        cancelColorBtn.translatesAutoresizingMaskIntoConstraints = false
+        doneColorBtn.translatesAutoresizingMaskIntoConstraints = false
+        titleTextLabel.translatesAutoresizingMaskIntoConstraints = false
+        dividerView.translatesAutoresizingMaskIntoConstraints = false
+        alphaSlider.translatesAutoresizingMaskIntoConstraints = false
+        alphaLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        colorPickerView.addSubview(cancelColorBtn)
+        colorPickerView.addSubview(titleTextLabel)
+        colorPickerView.addSubview(doneColorBtn)
+        colorPickerView.addSubview(dividerView)
+        colorPickerView.addSubview(alphaSlider)
+        colorPickerView.addSubview(alphaLabel)
+        
+        NSLayoutConstraint.activate([
+            
+            colorPickerView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -60),
+            colorPickerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
+            colorPickerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 0),
+            colorPickerView.heightAnchor.constraint(equalToConstant: 275), //260
+            
+            colorsBtn.topAnchor.constraint(equalTo: doneBtn.bottomAnchor, constant: 2.5),
+            colorsBtn.centerXAnchor.constraint(equalTo: doneBtn.centerXAnchor, constant: 0),
+            colorsBtn.widthAnchor.constraint(equalToConstant: 60),
+            colorsBtn.heightAnchor.constraint(equalToConstant: 34),
+            
+            titleTextLabel.topAnchor.constraint(equalTo: colorPickerView.topAnchor, constant: 8),
+            titleTextLabel.centerXAnchor.constraint(equalTo: colorPickerView.centerXAnchor, constant: 0),
+            titleTextLabel.widthAnchor.constraint(equalToConstant: 600),
+            titleTextLabel.heightAnchor.constraint(equalToConstant: 30),
+            
+            cancelColorBtn.topAnchor.constraint(equalTo: colorPickerView.topAnchor, constant: 8),
+            cancelColorBtn.leadingAnchor.constraint(equalTo: colorPickerView.leadingAnchor, constant: 20),
+            cancelColorBtn.widthAnchor.constraint(equalToConstant: 60),
+            cancelColorBtn.heightAnchor.constraint(equalToConstant: 30),
+            
+            doneColorBtn.topAnchor.constraint(equalTo: colorPickerView.topAnchor, constant: 8),
+            doneColorBtn.trailingAnchor.constraint(equalTo: colorPickerView.trailingAnchor, constant: -20),
+            doneColorBtn.widthAnchor.constraint(equalToConstant: 60),
+            doneColorBtn.heightAnchor.constraint(equalToConstant: 30),
+            
+            alphaSlider.bottomAnchor.constraint(equalTo: colorPickerView.bottomAnchor, constant: -10),
+            alphaSlider.trailingAnchor.constraint(equalTo: colorPickerView.trailingAnchor, constant: -25),
+            alphaSlider.widthAnchor.constraint(equalToConstant: 190),
+            alphaSlider.heightAnchor.constraint(equalToConstant: 40),
+            
+            alphaLabel.centerYAnchor.constraint(equalTo: alphaSlider.centerYAnchor, constant: 0),
+            alphaLabel.trailingAnchor.constraint(equalTo: alphaSlider.leadingAnchor, constant: -5),
+            alphaLabel.widthAnchor.constraint(equalToConstant: 60),
+            alphaLabel.heightAnchor.constraint(equalToConstant: 21),
+            
+        ])
+        
+        createAlphaSlider()
+        
+    }
+    
+    @objc func colorsBtnClick() {
+        colorPickerView.isHidden = false
+        view.endEditing(true)
+    }
+    
+    @objc func cancelColorBtnClick() {
+        colorPickerView.isHidden = true
+    }
+    
+    @objc func doneColorBtnClick() {
+        colorPickerView.isHidden = false
+        let content = textView.text.trimmingCharacters(in: .newlines)
+        endInput?(content, textView.font ?? UIFont.systemFont(ofSize: ZLTextStickerView.fontSize), currentTextColor, .clear)
+        dismiss(animated: true, completion: nil)
     }
     
     @objc func cancelBtnClick() {
@@ -184,6 +305,171 @@ class ZLInputTextViewController: UIViewController {
             self.collectionView.frame = CGRect(x: 0, y: self.view.frame.height - keyboardH - ZLInputTextViewController.collectionViewHeight, width: self.view.frame.width, height: ZLInputTextViewController.collectionViewHeight)
         }
     }
+    
+    func createSegment() {
+        
+        colorPickerView.layer.masksToBounds = true
+        colorPickerView.layer.cornerRadius = 10
+        
+        
+        let text        =  "text"//.Localised()
+        let outline     =  "outline"//.Localised()
+        let background  =  "background"//.Localised()
+        
+        //let items = [text, outline, background]         //[ "Text", "Stroke", "Background"]\
+        
+        let isIpad =  (UIDevice.current.userInterfaceIdiom == .pad)
+        
+        let font = UIFont.systemFont(ofSize: 17) //font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize)
+        let appearance = SMSegmentAppearance()
+        appearance.segmentOnSelectionColour = UIColor.gray
+        appearance.segmentOffSelectionColour = UIColor.white
+        appearance.titleOnSelectionFont = font
+        appearance.titleOffSelectionFont = font
+        appearance.contentVerticalMargin = 5.0
+        let segmentView = SMSegmentView(frame: CGRect(x: 10, y: 100, width: isIpad ? 190 : 90, height: 100), dividerColour: UIColor(white: 0.95, alpha: 0.3), dividerWidth: 1.0, segmentAppearance: appearance)
+        
+        
+        segmentView.addSegmentWithTitle(text, onSelectionImage: nil, offSelectionImage: nil)
+        segmentView.addSegmentWithTitle(outline, onSelectionImage: nil, offSelectionImage: nil)
+        segmentView.addSegmentWithTitle(background, onSelectionImage: nil, offSelectionImage: nil)
+        
+        segmentView.layer.cornerRadius = 5.0
+        
+        segmentView.addTarget(self, action: #selector(indexChanged(_:)), for: .valueChanged)
+        segmentView.selectedSegmentIndex = 0
+        segmentView.organiseMode = .vertical
+        
+        colorPickerView.addSubview(segmentView)
+        
+        
+        colorPlate.frame = CGRect(x: 0, y: 53, width: self.view.frame.width, height: 30) //CGRect(x: 0, y: 35, width: self.view.frame.width, height: 30)
+        colorPlate.delegate = self
+        colorPlate.style = .circle
+        colorPlate.backgroundColor = .clear
+        colorPickerView.addSubview(colorPlate)
+    }
+    
+    func createAlphaSlider() {
+        
+        createSegment()
+        
+        alphaSlider.minimumValue = 0
+        alphaSlider.maximumValue = 1
+        alphaSlider.isContinuous = true
+        alphaSlider.value = 1
+        alphaSlider.addTarget(self, action: #selector(alphaValueChanged(_:)), for: .valueChanged)
+        
+        let leftTrackImage = #imageLiteral(resourceName: "blackTrack.png")
+        alphaSlider.setMinimumTrackImage(leftTrackImage, for: .normal)
+        
+    }
+    
+    @objc func indexChanged(_ sender: SMSegmentView) {
+        
+        switch sender.selectedSegmentIndex {
+            
+        case 2:
+            alphaLabel.text = "opacity"//.Localised()   //"Alpha"
+            //alphaLabel?.applyLocalisedFont(type: "normal")
+            //alphaSlider.value = pp.backAlpha
+            //colorPickerView.color = currentTextColor//pp.backColor
+            alphaSlider.minimumValue = 0
+            alphaSlider.maximumValue = 1
+            colorToChange = "back"
+            
+        case 0:
+            alphaLabel.text = "opacity"//.Localised()   //"Alpha"
+            //alphaLabel?.applyLocalisedFont(type: "normal")
+            //alphaSlider.value = currentTextColor
+            //colorPickerView.color = currentTextColor
+            alphaSlider.minimumValue = 0
+            alphaSlider.maximumValue = 1
+            colorToChange = "text"
+            
+        case 1:
+            alphaSlider.minimumValue = 0
+            alphaSlider.maximumValue = 10
+            alphaLabel.text = "outline size"//.Localised()    //"Width"
+            //alphaLabel?.applyLocalisedFont(type: "normal")
+            alphaSlider.value = 0 - strokeAlpha //pp.strokeAlpha          //0 - strokeWidth
+            //colorPickerView.color = strokeColor //pp.strokeColor
+            //myStrokeColor = pp.strokeColor
+            colorToChange = "stroke"
+            
+        default:
+            break
+        }
+        
+    }
+    
+    @objc func alphaValueChanged(_ sender:UISlider!){
+        print(sender.value)
+        
+        
+        switch colorToChange {
+            
+        case "back":
+            //let textColorWithAlpha = currentTextColor.withAlphaComponent(CGFloat(sender.value))
+            //textView.backgroundColor = textColorWithAlpha
+            break
+            
+        case "text":
+            
+            //// Set the desired alpha value using the withAlphaComponent method
+            let textColorWithAlpha = currentTextColor.withAlphaComponent(CGFloat(sender.value))
+            currentTextAlpha = sender.value
+            //textView.textColor = textColorWithAlpha
+            
+            // Create a NSMutableAttributedString with the desired text and attributes
+            let attributedString = NSMutableAttributedString(string: textView.text)
+            
+            // Set the text color attribute for the entire string
+            attributedString.addAttribute(.foregroundColor, value: textColorWithAlpha, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke color attribute for the entire string
+            attributedString.addAttribute(.strokeColor, value: strokeColor.withAlphaComponent(CGFloat(sender.value)), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke width attribute for the entire string (optional)
+            attributedString.addAttribute(.strokeWidth, value: -strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the font size attribute for the entire string
+            attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Assign the attributed string to the UITextView
+            textView.attributedText = attributedString
+            
+        case "stroke":
+            
+            strokeAlpha = sender.value
+            
+            // Create a NSMutableAttributedString with the desired text and attributes
+            let attributedString = NSMutableAttributedString(string: textView.text)
+            
+            // Set the text color attribute for the entire string
+            attributedString.addAttribute(.foregroundColor, value: currentTextColor.withAlphaComponent(CGFloat(sender.value)), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke color attribute for the entire string
+            attributedString.addAttribute(.strokeColor, value: strokeColor.withAlphaComponent(CGFloat(sender.value)), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke width attribute for the entire string (optional)
+            attributedString.addAttribute(.strokeWidth, value: -sender.value, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the font size attribute for the entire string
+            attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Assign the attributed string to the UITextView
+            textView.attributedText = attributedString
+            
+            break
+            
+        default:
+            break
+            
+        }
+        
+    }
+    
 }
 
 extension ZLInputTextViewController: UICollectionViewDelegate, UICollectionViewDataSource {
@@ -192,7 +478,7 @@ extension ZLInputTextViewController: UICollectionViewDelegate, UICollectionViewD
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ZLDrawColorCell.zl.identifier, for: indexPath) as! ZLDrawColorCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ZLDrawColorCell.zl.identifier, for: indexPath) as? ZLDrawColorCell else { return UICollectionViewCell() }
         
         let c = ZLImageEditorConfiguration.default().textStickerTextColors[indexPath.row]
         cell.color = c
@@ -206,8 +492,33 @@ extension ZLInputTextViewController: UICollectionViewDelegate, UICollectionViewD
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        
         currentTextColor = ZLImageEditorConfiguration.default().textStickerTextColors[indexPath.row]
         textView.textColor = currentTextColor
+        //textView.textColor = currentTextColor
+        
+        // Set the desired alpha value using the withAlphaComponent method
+        let textColorWithAlpha = currentTextColor.withAlphaComponent(CGFloat(currentTextAlpha))
+        //textView.textColor = textColorWithAlpha
+        
+        // Create a NSMutableAttributedString with the desired text and attributes
+        let attributedString = NSMutableAttributedString(string: textView.text)
+        
+        // Set the text color attribute for the entire string
+        attributedString.addAttribute(.foregroundColor, value: textColorWithAlpha, range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the stroke color attribute for the entire string
+        attributedString.addAttribute(.strokeColor, value: strokeColor.withAlphaComponent(CGFloat(strokeAlpha)), range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the stroke width attribute for the entire string (optional)
+        attributedString.addAttribute(.strokeWidth, value: -strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the font size attribute for the entire string
+        attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+        
+        // Assign the attributed string to the UITextView
+        textView.attributedText = attributedString
+        
         collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
         collectionView.reloadData()
     }
@@ -221,4 +532,199 @@ extension ZLInputTextViewController: UITextViewDelegate {
         }
         return true
     }
+    
+    // Implement the textViewDidBeginEditing delegate method
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        
+        textView.textColor = currentTextColor
+        
+        // Call a method to update the text attributes when editing begins
+        
+        // Set the desired alpha value using the withAlphaComponent method
+        let textColorWithAlpha = currentTextColor.withAlphaComponent(CGFloat(currentTextAlpha))
+        //textView.textColor = textColorWithAlpha
+        
+        // Create a NSMutableAttributedString with the desired text and attributes
+        let attributedString = NSMutableAttributedString(string: textView.text)
+        
+        // Set the text color attribute for the entire string
+        attributedString.addAttribute(.foregroundColor, value: textColorWithAlpha, range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the stroke color attribute for the entire string
+        attributedString.addAttribute(.strokeColor, value: strokeColor.withAlphaComponent(CGFloat(strokeAlpha)), range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the stroke width attribute for the entire string (optional)
+        attributedString.addAttribute(.strokeWidth, value: -strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the font size attribute for the entire string
+        attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+        
+        // Assign the attributed string to the UITextView
+        textView.attributedText = attributedString
+        
+    }
+    
+    // Implement the textViewDidEndEditing delegate method
+    func textViewDidEndEditing(_ textView: UITextView) {
+        // Call a method to update the text attributes when editing ends
+        
+        // Set the desired alpha value using the withAlphaComponent method
+        let textColorWithAlpha = currentTextColor.withAlphaComponent(CGFloat(currentTextAlpha))
+        //textView.textColor = textColorWithAlpha
+        
+        // Create a NSMutableAttributedString with the desired text and attributes
+        let attributedString = NSMutableAttributedString(string: textView.text)
+        
+        // Set the text color attribute for the entire string
+        attributedString.addAttribute(.foregroundColor, value: textColorWithAlpha, range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the stroke color attribute for the entire string
+        attributedString.addAttribute(.strokeColor, value: strokeColor.withAlphaComponent(CGFloat(strokeAlpha)), range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the stroke width attribute for the entire string (optional)
+        attributedString.addAttribute(.strokeWidth, value: -strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+        
+        // Set the font size attribute for the entire string
+        attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+        
+        // Assign the attributed string to the UITextView
+        textView.attributedText = attributedString
+        
+    }
+    
+}
+
+//MARK: - EFColorViewDelegate, ColorPickerViewDelegate
+
+extension ZLInputTextViewController: EFColorViewDelegate, ColorPickerViewDelegate {
+    
+    func colorPickerView(_ colorPickerView: ColorPickerView, didSelectItemAt indexPath: IndexPath) {
+        
+        print(colorPlate.colors[indexPath.row])
+        
+        switch colorToChange {
+            
+        case "back":
+            
+            break
+            
+        case "text":
+            
+            print(colorPlate.colors[indexPath.row])
+            currentTextColor = colorPlate.colors[indexPath.row]
+            //textView.textColor = currentTextColor
+            
+            // Create a NSMutableAttributedString with the desired text and attributes
+            let attributedString = NSMutableAttributedString(string: textView.text)
+            
+            // Set the text color attribute for the entire string
+            attributedString.addAttribute(.foregroundColor, value: currentTextColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke color attribute for the entire string
+            attributedString.addAttribute(.strokeColor, value: strokeColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke width attribute for the entire string (optional)
+            attributedString.addAttribute(.strokeWidth, value: 0 - strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the font size attribute for the entire string
+            attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Assign the attributed string to the UITextView
+            textView.attributedText = attributedString
+            
+            
+        case "stroke":
+            
+            print(colorPlate.colors[indexPath.row])
+            strokeColor = colorPlate.colors[indexPath.row]
+            
+            // Create a NSMutableAttributedString with the desired text and attributes
+            let attributedString = NSMutableAttributedString(string: textView.text)
+            
+            // Set the stroke color attribute for the entire string
+            attributedString.addAttribute(.strokeColor, value: strokeColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke width attribute for the entire string (optional)
+            attributedString.addAttribute(.strokeWidth, value: 0 - strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the font size attribute for the entire string
+            attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Assign the attributed string to the UITextView
+            textView.attributedText = attributedString
+            
+        default:
+            break
+        }
+    }
+    
+    func colorView(colorView: EFColorView, didChangeColor color: UIColor) {
+        print(color)
+        //        currentTextColor = color
+        //        textView.textColor = currentTextColor
+        
+        print(color)
+        
+        switch colorToChange {
+            
+        case "back":
+            
+            break
+            
+        case "text":
+            
+            print(color)
+            currentTextColor = color
+            //textView.textColor = currentTextColor
+            
+            //let textColorWithAlpha = currentTextColor.withAlphaComponent(CGFloat(sender.value))
+            //textView.textColor = textColorWithAlpha
+            
+            // Create a NSMutableAttributedString with the desired text and attributes
+            let attributedString = NSMutableAttributedString(string: textView.text)
+            
+            // Set the text color attribute for the entire string
+            attributedString.addAttribute(.foregroundColor, value: currentTextColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke color attribute for the entire string
+            attributedString.addAttribute(.strokeColor, value: strokeColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke width attribute for the entire string (optional)
+            attributedString.addAttribute(.strokeWidth, value: 0 - strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the font size attribute for the entire string
+            attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Assign the attributed string to the UITextView
+            textView.attributedText = attributedString
+            
+        case "stroke":
+            
+            print(color)
+            strokeColor = color
+            
+            // Create a NSMutableAttributedString with the desired text and attributes
+            let attributedString = NSMutableAttributedString(string: textView.text)
+            
+            // Set the text color attribute for the entire string
+            attributedString.addAttribute(.foregroundColor, value: currentTextColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke color attribute for the entire string
+            attributedString.addAttribute(.strokeColor, value: strokeColor, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the stroke width attribute for the entire string (optional)
+            attributedString.addAttribute(.strokeWidth, value: 0 - strokeAlpha, range: NSRange(location: 0, length: attributedString.length))
+            
+            // Set the font size attribute for the entire string
+            attributedString.addAttribute(.font, value: font?.withSize(ZLTextStickerView.fontSize) ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize), range: NSRange(location: 0, length: attributedString.length))
+            
+            // Assign the attributed string to the UITextView
+            textView.attributedText = attributedString
+            
+        default:
+            break
+        }
+        
+    }
+    
 }

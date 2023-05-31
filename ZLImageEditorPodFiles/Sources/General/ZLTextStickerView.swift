@@ -45,6 +45,7 @@ class ZLTextStickerView: ZLBaseStickerView<ZLTextStickerState> {
         label.font = textFont ?? UIFont.boldSystemFont(ofSize: ZLTextStickerView.fontSize)
         label.textColor = textColor
         label.backgroundColor = bgColor
+        label.textAlignment = .left
         label.numberOfLines = 0
         label.lineBreakMode = .byCharWrapping
         return label
@@ -74,6 +75,8 @@ class ZLTextStickerView: ZLBaseStickerView<ZLTextStickerState> {
             label.backgroundColor = bgColor
         }
     }
+    
+    
     
     // Convert all states to model.
     override var state: ZLTextStickerState {
@@ -140,6 +143,7 @@ class ZLTextStickerView: ZLBaseStickerView<ZLTextStickerState> {
         
         addSubview(borderView)
         borderView.addSubview(label)
+        
     }
     
     @available(*, unavailable)
@@ -147,9 +151,69 @@ class ZLTextStickerView: ZLBaseStickerView<ZLTextStickerState> {
         fatalError("init(coder:) has not been implemented")
     }
     
+    func setupCloseAndRotateView() {
+        closeView = UIButton(frame: CGRect(x: 10, y: 5, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6)) //UIImageView(frame: CGRect(x: 0, y: 0, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        closeView?.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
+        //closeView!.layer.borderColor = UIColor(red: 33, green: 45, blue: 59, alpha: 1).cgColor
+        //closeView!.layer.borderWidth = 3
+        closeView?.contentMode = .scaleAspectFill
+        closeView?.clipsToBounds = true
+        closeView?.backgroundColor = UIColor.clear
+        closeView?.layer.cornerRadius = globalInset! - 10
+        closeView?.setImage(UIImage(named: "cancel"), for: .normal)
+        //closeView?.isUserInteractionEnabled = true
+        
+        self.addSubview(closeView!)
+        //self.bringSubviewToFront(closeView!)
+
+        centerView = UIButton(frame: CGRect(x: self.bounds.size.width - globalInset! * 2, y: 0, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        centerView?.autoresizingMask = [.flexibleLeftMargin, .flexibleBottomMargin]
+        //closeView!.layer.borderColor = UIColor(red: 33, green: 45, blue: 59, alpha: 1).cgColor
+        //closeView!.layer.borderWidth = 3
+        centerView?.contentMode = .scaleAspectFill
+        centerView?.clipsToBounds = true
+        centerView?.backgroundColor = UIColor.clear
+        centerView?.layer.cornerRadius = globalInset! - 10
+        centerView?.setImage(UIImage(named: "centerAlignment"), for: .normal) //.image = UIImage(named: "centerAlignment")
+        centerView?.isUserInteractionEnabled = true
+        self.addSubview(centerView!)
+        //self.bringSubviewToFront(centerView!)
+
+        
+        resizeView = UIImageView(frame: CGRect(x: self.bounds.size.width - globalInset! * 2, y: self.bounds.size.height - globalInset! * 2, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        resizeView?.autoresizingMask = [.flexibleLeftMargin, .flexibleTopMargin]
+        resizeView?.backgroundColor = UIColor.clear
+        resizeView?.layer.cornerRadius =  globalInset! - 10
+        //rotateView?.layer.borderColor = UIColor.white.cgColor
+        //rotateView?.layer.borderWidth = 3
+        resizeView?.clipsToBounds = true
+        resizeView?.image = UIImage(named: "rotate")
+        resizeView?.contentMode = .scaleAspectFit
+        resizeView?.isUserInteractionEnabled = true
+        self.addSubview(resizeView!)
+        //self.bringSubviewToFront(resizeView!)
+        
+        rotateView = UIImageView(frame: CGRect(x: 10, y: self.bounds.size.height - globalInset! * 2, width: globalInset! * 2 - 6, height: globalInset! * 2 - 6))
+        rotateView?.autoresizingMask = [.flexibleRightMargin, .flexibleTopMargin]
+        rotateView?.backgroundColor = UIColor.clear
+        rotateView?.layer.cornerRadius =  globalInset! - 10
+        //rotateView?.layer.borderColor = UIColor.white.cgColor
+        //rotateView?.layer.borderWidth = 3
+        rotateView?.clipsToBounds = true
+        rotateView?.image = UIImage(named: "rotate-option")
+        rotateView?.contentMode = .scaleAspectFit
+        rotateView?.isUserInteractionEnabled = true
+        self.addSubview(rotateView!)
+        //self.bringSubviewToFront(rotateView!)
+
+    }
+    
     override func setupUIFrameWhenFirstLayout() {
         borderView.frame = bounds.insetBy(dx: ZLStickerLayout.edgeInset, dy: ZLStickerLayout.edgeInset)
         label.frame = borderView.bounds.insetBy(dx: ZLStickerLayout.edgeInset, dy: ZLStickerLayout.edgeInset)
+        
+        setupCloseAndRotateView()
+        
     }
     
     override func tapAction(_ ges: UITapGestureRecognizer) {
@@ -160,6 +224,10 @@ class ZLTextStickerView: ZLBaseStickerView<ZLTextStickerState> {
         } else {
             super.tapAction(ges)
         }
+    }
+    
+    override func setTextAlighnment() {
+        label.textAlignment = .center
     }
     
     func changeSize(to newSize: CGSize) {
